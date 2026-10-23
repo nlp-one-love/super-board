@@ -46,6 +46,19 @@ Alternatively set GITEA_TOKEN_FILE to an owner-only regular file outside Git (mo
 launcher is required. A nonempty GITEA_TOKEN takes precedence. Doctor reports
 credentialSource (environment/file/none), never the token or its file contents.
 
+For reliable access after restarting Codex, register only the private file's path
+in the selected project's local Git config:
+
+```bash
+python3 .agents/bin/super-board-provider.py --config CONFIG auth --token-file /absolute/private/token-file
+```
+
+This performs no HTTP request and stores no token value. The reference is scoped
+to the exact server URL and repository, is not committed, and is not a global Git
+setting. Later direct CLI calls report credentialSource=git-config-file. Explicit
+token/file environment variables still take precedence. Missing credentials now
+fail before HTTP, rather than being misreported as an anonymous repo 403.
+
 Project scopes: repository, organization (`project.owner` optional), individual
 (authenticated user's board). Owner boards are filtered to one configured repo;
 missing repository identity fails closed. A run must start at the matching origin's

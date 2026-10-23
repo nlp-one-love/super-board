@@ -26,7 +26,7 @@ def value(mapping, key, default=None):
 
 
 class Gitea(Provider):
-    def __init__(self, config, allow_write=False, state_dir=None, **options):
+    def __init__(self, config, allow_write=False, state_dir=None, credentials_required=True, **options):
         self.config, self.allow_write = config, allow_write
         g = config.get('gitea', {})
         if not isinstance(g, dict):
@@ -58,7 +58,12 @@ class Gitea(Provider):
         self.projects = self.r + '/projects' if self.scope == 'repository' else (
             '/orgs/' + board_owner + '/projects' if self.scope == 'organization' else '/user/projects')
         self.p = self.projects + '/' + str(pid)
-        self.token, self.token_source = token_for(g)
+        self.credential_scope = self.url + '/' + self.repository
+        if credentials_required:
+            self.token, self.token_source = token_for(g, self.credential_scope)
+        else:
+            # Local auth setup must also repair a missing/stale previous reference.
+            self.token, self.token_source = '', 'none'
         timeout = g.get('timeout_seconds', 15)
         if type(timeout) not in (int, float) or not 0 < timeout <= 60:
             raise ProviderError('config', 'timeout_seconds must be between 0 and 60', 66)

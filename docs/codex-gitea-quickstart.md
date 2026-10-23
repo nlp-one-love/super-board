@@ -39,6 +39,13 @@ For file-based credentials, export GITEA_TOKEN_FILE before starting Codex. Direc
 Python provider/runner commands also read that file; it must be owner-only (600).
 Do not leave an obsolete GITEA_TOKEN set: a nonempty token env overrides the file.
 
+Alternatively bind the file once, locally, to survive sessions that do not inherit
+your terminal's environment (no remote write, no token copied):
+
+```bash
+python3 .agents/bin/super-board-provider.py --config .claude/super-board/configs/demo.json auth --token-file /absolute/private/token-file
+```
+
 At the sandbox root:
 
 ```bash

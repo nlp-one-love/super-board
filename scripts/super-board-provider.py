@@ -19,20 +19,29 @@ def main(argv=None):
     parser.add_argument('--reconciled', action='store_true')
     parser.add_argument('command', choices=['doctor', 'items', 'ids', 'status', 'item-id', 'move', 'attach',
         'issue', 'comments', 'dependencies', 'pulls', 'pull', 'files', 'diff', 'checks', 'reviews',
-        'create-issue', 'update-issue', 'comment', 'edit-comment', 'create-pr', 'update-pr', 'merge', 'resume'])
+        'create-issue', 'update-issue', 'comment', 'edit-comment', 'create-pr', 'update-pr', 'merge', 'resume', 'auth'])
     parser.add_argument('args', nargs='*')
     parser.add_argument('--body-file', help='JSON payload for create/update; literal UTF-8 for comments')
+    parser.add_argument('--token-file', help='auth only: register the path of an existing private file outside the repo')
     args = parser.parse_args(argv)
     git = subprocess.run(['git', 'rev-parse', '--path-format=absolute', '--git-common-dir'],
                          text=True, capture_output=True)
     state = Path(git.stdout.strip()).parent / '.claude/super-board/provider-state' if git.returncode == 0 else None
-    provider = load(args.config, allow_write=args.allow_write, state_dir=state)
+    provider = load(args.config, allow_write=args.allow_write, state_dir=state,
+                    credentials_required=args.command != 'auth')
     SAFE_TOKEN = getattr(provider, 'token', '')
     command, values = args.command, args.args
     arity = {'move': 2, 'attach': 2, 'items': 0, 'ids': 0, 'doctor': 0, 'merge': 0,
-             'pulls': 0, 'create-issue': 0, 'create-pr': 0, 'resume': 0}
+             'pulls': 0, 'create-issue': 0, 'create-pr': 0, 'resume': 0, 'auth': 0}
     if len(values) != arity.get(command, 1):
         parser.error('wrong number of arguments for ' + command)
+    if command == 'auth':
+        if not args.token_file or not hasattr(provider, 'credential_scope'):
+            parser.error('auth requires a Gitea config and --token-file pointing outside the repo')
+        from super_board_providers.credentials import bind_token_file
+        bind_token_file(provider.credential_scope, args.token_file)
+        return {'configured': True, 'repository': provider.repository, 'credentialSource': 'git-config-file',
+                'stored': 'file reference only; token is not copied'}
     if command == 'merge':
         return provider.merge()
     if command == 'resume':

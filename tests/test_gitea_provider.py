@@ -153,6 +153,53 @@ class HTTPTests(unittest.TestCase):
         with patch.dict(os.environ, {'GITEA_TOKEN_FILE': str(self.state / 'absent')}):
             self.assertEqual(self.provider().token_source, 'environment')
 
+    def test_no_credentials_fails_before_any_network_request(self):
+        config = self.state / 'no-auth.json'; config.write_text(json.dumps(self.config))
+        env = dict(os.environ, GITEA_TOKEN='', GITEA_TOKEN_FILE='')
+        p = subprocess.run([sys.executable, str(ROOT / 'scripts/super-board-gitea.py'),
+                            '--config', str(config), 'doctor'], env=env, cwd=self.state,
+                           capture_output=True, text=True)
+        self.assertEqual(p.returncode, 66, p.stderr)
+        self.assertIn('No Gitea credentials configured', p.stderr)
+        self.assertEqual(self.server.calls, [])
+
+    def test_local_file_binding_survives_new_process_without_environment(self):
+        project = self.state / 'credential-project'; project.mkdir()
+        subprocess.run(['git', 'init', '-q', str(project)], check=True)
+        token = self.state / 'private-token'; token.write_text(self.server.token); token.chmod(0o600)
+        config = self.state / 'config.json'; config.write_text(json.dumps(self.config))
+        env = dict(os.environ, GITEA_TOKEN='', GITEA_TOKEN_FILE='')
+        base = [sys.executable, str(ROOT / 'scripts/super-board-provider.py'), '--config', str(config)]
+        bound = subprocess.run(base + ['auth', '--token-file', str(token)], cwd=project, env=env,
+                               capture_output=True, text=True)
+        self.assertEqual(bound.returncode, 0, bound.stderr)
+        stored = (project / '.git/config').read_text()
+        self.assertIn(str(token), stored); self.assertNotIn(self.server.token, stored)
+        checked = subprocess.run(base + ['doctor'], cwd=project, env=env, capture_output=True, text=True)
+        self.assertEqual(checked.returncode, 0, checked.stderr)
+        self.assertEqual(json.loads(checked.stdout)['credentialSource'], 'git-config-file')
+        self.assertNotIn(self.server.token, bound.stdout + bound.stderr + checked.stdout + checked.stderr)
+        replacement = self.state / 'replacement-token'
+        replacement.write_text(self.server.token); replacement.chmod(0o600); token.unlink()
+        repaired = subprocess.run(base + ['auth', '--token-file', str(replacement)], cwd=project,
+                                  env=env, capture_output=True, text=True)
+        self.assertEqual(repaired.returncode, 0, repaired.stderr)
+        self.server.calls.clear()
+        foreign = json.loads(config.read_text()); foreign['gitea']['repo'] = 'other'
+        config.write_text(json.dumps(foreign))
+        checked = subprocess.run(base + ['doctor'], cwd=project, env=env, capture_output=True, text=True)
+        self.assertEqual(checked.returncode, 66)
+        self.assertEqual(self.server.calls, [])
+
+    def test_project_local_binding_rejects_token_file_inside_git(self):
+        from super_board_providers.credentials import bind_token_file
+        project = self.state / 'bad-credential-project'; project.mkdir()
+        subprocess.run(['git', 'init', '-q', str(project)], check=True)
+        token = project / 'private-token'; token.write_text(self.server.token); token.chmod(0o600)
+        with self.assertRaises(ProviderError):
+            bind_token_file(self.url + '/acme/demo', token, cwd=project)
+        self.assertNotIn('tokenFile', (project / '.git/config').read_text())
+
     def test_unsafe_missing_and_symlink_token_files_fail_before_http(self):
         token = self.state / 'token'; token.write_text(self.server.token); token.chmod(0o644)
         linked = self.state / 'linked'; linked.symlink_to(token)
