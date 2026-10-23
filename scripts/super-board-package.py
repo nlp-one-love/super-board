@@ -102,6 +102,22 @@ def block(text):
     return matches[0] if matches else None
 
 
+def instruction_template(root, source):
+    configs = safe(root, '.claude/super-board/configs')
+    if configs.is_symlink():
+        raise Conflict('Config directory cannot be a symlink')
+    gitea = False
+    for path in configs.glob('*.json'):
+        if path.is_symlink():
+            raise Conflict('Config file cannot be a symlink')
+        value = json.loads(path.read_text())
+        if not isinstance(value, dict):
+            raise Conflict('Invalid project configuration')
+        gitea = gitea or value.get('provider') == 'gitea'
+    name = 'agents-md-block-gitea.md' if gitea else 'agents-md-block.md'
+    return source / 'skills/super-board/references' / name
+
+
 def payload(source, host):
     content, files = {}, {}
     for folder in ('skills', 'scripts', 'workflows', 'hooks'):
@@ -164,7 +180,7 @@ def make_plan(root, source, host, uninstall=False):
     template = ''
     if not uninstall:
         template = ('<!-- super-board:begin v' + version + ' (managed) -->\n' +
-                    (source / 'skills/super-board/references/agents-md-block.md').read_text().strip() +
+                    instruction_template(root, source).read_text().strip() +
                     '\n<!-- super-board:end -->\n')
     if match:
         updated = current[:match.start()] + template + current[match.end():]

@@ -1,5 +1,9 @@
 ## Super Board
 
+Read the selected config's provider first. For `provider=gitea`, use only
+`.agents/skills/super-board/references/gitea-run.md`: Codex CLI, Gitea provider,
+manual merge, no migrations. The GitHub rules below do not apply to Gitea.
+
 Board: Backlog · Ready · Building · QA · Review · Blocked · Done. Labels route: `qa` skips Building · `bug`, `feature`, none → built first.
 
 | When | Use | NEVER |

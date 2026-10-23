@@ -90,6 +90,16 @@ class PackageTests(unittest.TestCase):
         plan, _, _ = package.make_plan(self.target, self.source, 'codex')
         self.assertTrue(plan['conflicts'])
 
+    def test_gitea_config_selects_manual_merge_instructions(self):
+        template = self.source / 'skills/super-board/references/agents-md-block-gitea.md'
+        template.write_text('Gitea + Codex; manual merge only\n')
+        config = self.target / '.claude/super-board/configs/demo.json'
+        config.parent.mkdir(parents=True); config.write_text('{"provider":"gitea"}')
+        self.install()
+        instructions = (self.target / 'AGENTS.md').read_text()
+        self.assertIn('manual merge only', instructions)
+        self.assertNotIn('managed rules', instructions)
+
     def test_traversal_rejected(self):
         for name in ('../outside', '/etc/passwd', '.git/config', '.agents/../oops', 'x\\y'):
             with self.assertRaises(package.Conflict):
