@@ -28,6 +28,46 @@ def review_scope(provider):
     return hashlib.sha256(json.dumps(data, sort_keys=True).encode()).hexdigest()
 
 
+def run_state(state):
+    """Read local evidence without credentials, network or creating state files.
+
+    active.json outlives a lane/crash: an unlocked runner must never present that
+    stale card as currently executing. The lock can also cover finish/resume.
+    """
+    state = local_path(state)
+    held = False
+    lock = local_path(state.parent / 'run.lock')
+    if lock.exists():
+        import fcntl
+        with lock.open('r') as stream:
+            try:
+                fcntl.flock(stream, fcntl.LOCK_EX | fcntl.LOCK_NB)
+            except BlockingIOError:
+                held = True
+            else:
+                fcntl.flock(stream, fcntl.LOCK_UN)
+    def read(name):
+        path = local_path(state / name)
+        if not path.exists():
+            return None
+        try:
+            with path.open('r') as stream:
+                return json.loads(stream.read(256 * 1024))
+        except (ValueError, OSError):
+            return None
+    card = read('active.json')
+    task = {k: card.get(k) for k in ('number', 'lane', 'status')} if isinstance(card, dict) else None
+    reports = []
+    for path in sorted(state.glob('lane-*.json')):
+        data = read(path.name)
+        if isinstance(data, dict):
+            reports.append({'file': str(path), 'status': data.get('status'), 'pr': data.get('pr')})
+    return {'lockState': 'busy' if held else 'idle', 'activeTask': task if held else None,
+            'lastTask': task, 'stopRequested': (state / 'stop-request.json').exists(),
+            'reports': reports, 'lastRunFile': str(state / 'last-run.json') if (state / 'last-run.json').exists() else None,
+            'stateDirectory': str(state)}
+
+
 def post_result(provider, card, result):
     detail = result['detail']
     if result['status'] == 'blocked' and not re.search(r'^blocked-by:', detail, re.M | re.I):
@@ -423,11 +463,11 @@ def main(argv=None):
     parser.add_argument('--allow-write', action='store_true')
     parser.add_argument('--allow-agent-run', action='store_true')
     parser.add_argument('--reconciled', action='store_true')
-    parser.add_argument('command', choices=['doctor', 'status', 'plan', 'run', 'stop', 'resume', 'finish'])
+    parser.add_argument('command', choices=['doctor', 'status', 'runner-status', 'plan', 'run', 'stop', 'resume', 'finish'])
     parser.add_argument('number', nargs='?', type=int)
     args = parser.parse_args(argv)
     config = Path(args.config).resolve()
-    provider = load(config, allow_write=args.allow_write)
+    provider = load(config, allow_write=args.allow_write, credentials_required=args.command != 'runner-status')
     SAFE_TOKEN = getattr(provider, 'token', '')
     if not hasattr(provider, 'identity'):
         raise ProviderError('config', 'This runner requires provider=gitea', 66)
@@ -439,6 +479,8 @@ def main(argv=None):
     shared = common.parent / '.claude/super-board'
     provider.state = shared / 'provider-state' / provider.identity
     state = shared / 'gitea' / provider.identity
+    if args.command == 'runner-status':
+        return run_state(state)
     if args.command == 'stop':
         save(state / 'stop-request.json', {'requested_at': time.time()})
         return {'stopping': True, 'preserved': 'worktrees, branches, PRs and receipts'}

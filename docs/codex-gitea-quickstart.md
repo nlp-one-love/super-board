@@ -52,12 +52,21 @@ At the sandbox root:
 codex login status
 python3 .agents/bin/super-board-gitea.py --config .claude/super-board/configs/demo.json doctor
 python3 .agents/bin/super-board-gitea.py --config .claude/super-board/configs/demo.json status
+python3 .agents/bin/super-board-gitea.py --config .claude/super-board/configs/demo.json runner-status
 python3 .agents/bin/super-board-gitea.py --config .claude/super-board/configs/demo.json plan
 ```
 
 These start no agents and perform no remote writes. Doctor reports missing columns;
 create them in the UI. Missing technical skills must be installed/reviewed separately.
 `$super-board` routes Gitea to its own lifecycle, bypassing GitHub onboarding.
+
+`status` reads the board; `runner-status` is offline and needs no credentials. It
+reports the live local lock (busy/idle), the most recently dispatched task, stop
+request and saved lane receipt paths. A persisted active.json with an unlocked
+runner is shown as lastTask, never activeTask. busy can also mean finish/resume
+currently owns the lock. Gitea Issue/PR comments hold remote results. There is no
+separate web dashboard. On Linux, `watch -n 2 './factory runner-status'` can monitor
+a project that supplies the factory launcher.
 
 ## Run only after sandbox and usage approval
 

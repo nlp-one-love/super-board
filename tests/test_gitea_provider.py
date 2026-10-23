@@ -393,6 +393,27 @@ class HTTPTests(unittest.TestCase):
                 with runner.run_lock(self.state / 'two'):
                     pass
 
+    def test_runner_status_is_read_only_and_does_not_invent_active_worker(self):
+        state = self.state / 'run/board'
+        self.assertEqual(runner.run_state(state)['lockState'], 'idle')
+        self.assertFalse(state.exists())
+        runner.save(state / 'active.json', {'number': 11, 'lane': 'build', 'status': 'Ready', 'body': 'private task data'})
+        info = runner.run_state(state)
+        self.assertIsNone(info['activeTask']); self.assertEqual(info['lastTask']['number'], 11)
+        self.assertNotIn('private task data', json.dumps(info))
+        with runner.run_lock(state):
+            info = runner.run_state(state)
+            self.assertEqual(info['lockState'], 'busy'); self.assertEqual(info['activeTask']['number'], 11)
+        self.assertEqual(runner.run_state(state)['lockState'], 'idle')
+
+    def test_runner_status_reports_stop_and_saved_receipts(self):
+        state = self.state / 'run/board'
+        runner.save(state / 'stop-request.json', {'stop': True})
+        runner.save(state / 'lane-11-build.json', {'status': 'passed', 'pr': 31, 'detail': 'hidden command output'})
+        info = runner.run_state(state)
+        self.assertTrue(info['stopRequested']); self.assertEqual(info['reports'][0]['pr'], 31)
+        self.assertNotIn('hidden command output', json.dumps(info))
+
     def setup_fake_runtime(self):
         root = self.state / 'project'; root.mkdir()
         def git(*args):
