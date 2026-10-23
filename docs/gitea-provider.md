@@ -18,6 +18,7 @@ Save as `.claude/super-board/configs/demo.json`:
     "owner_env": "GITEA_OWNER",
     "repo_env": "GITEA_REPO",
     "token_env": "GITEA_TOKEN",
+    "token_file_env": "GITEA_TOKEN_FILE",
     "timeout_seconds": 15
   },
   "project": {"scope": "repository", "id_env": "GITEA_PROJECT_ID"},
@@ -40,6 +41,10 @@ must match the project's actual commit statuses; empty/unknown checks are not gr
 Use environment variables/secret manager for the token; never values in JSON, argv,
 Git or chat. url/owner/repo/id can instead use explicit literal nonsecret fields.
 Environment references are schema fields, never shell interpolation.
+Alternatively set GITEA_TOKEN_FILE to an owner-only regular file outside Git (mode
+600). The provider itself supports this, including direct Python CLI calls; no
+launcher is required. A nonempty GITEA_TOKEN takes precedence. Doctor reports
+credentialSource (environment/file/none), never the token or its file contents.
 
 Project scopes: repository, organization (`project.owner` optional), individual
 (authenticated user's board). Owner boards are filtered to one configured repo;

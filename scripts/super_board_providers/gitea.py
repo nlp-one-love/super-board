@@ -13,6 +13,7 @@ import urllib.parse
 from .base import Provider, ProviderError, local_path
 from .http import HTTP
 from .models import IssueRef, positive
+from .credentials import token_for
 
 
 def value(mapping, key, default=None):
@@ -57,12 +58,7 @@ class Gitea(Provider):
         self.projects = self.r + '/projects' if self.scope == 'repository' else (
             '/orgs/' + board_owner + '/projects' if self.scope == 'organization' else '/user/projects')
         self.p = self.projects + '/' + str(pid)
-        token_name = g.get('token_env', 'GITEA_TOKEN')
-        if not isinstance(token_name, str) or not re.fullmatch(r'[A-Za-z_][A-Za-z0-9_]*', token_name):
-            raise ProviderError('config', 'Invalid token_env', 66)
-        self.token = os.environ.get(token_name, '')
-        if any(c in self.token for c in '\r\n'):
-            raise ProviderError('config', 'Invalid token environment value', 66)
+        self.token, self.token_source = token_for(g)
         timeout = g.get('timeout_seconds', 15)
         if type(timeout) not in (int, float) or not 0 < timeout <= 60:
             raise ProviderError('config', 'timeout_seconds must be between 0 and 60', 66)
@@ -150,7 +146,8 @@ class Gitea(Provider):
         missing = sorted(set(needed) - {c['title'] for c in columns})
         return {'provider': 'gitea', 'version': version, 'repository': self.repository,
                 'projectId': self.project_id, 'scope': self.scope, 'missingColumns': missing,
-                'ready': not missing, 'merge': 'manual-only', 'authenticated': bool(self.token)}
+                'ready': not missing, 'merge': 'manual-only', 'authenticated': bool(self.token),
+                'credentialSource': self.token_source}
 
     def columns(self):
         data = self.http.pages(self.p + '/columns')

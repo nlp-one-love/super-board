@@ -137,6 +137,34 @@ class HTTPTests(unittest.TestCase):
     def test_doctor_checks_contract_and_project(self):
         self.assertTrue(self.provider().doctor()['ready'])
 
+    def test_direct_cli_reads_token_file_without_wrapper(self):
+        token = self.state / 'private-token'; token.write_text(self.server.token + '\n'); token.chmod(0o600)
+        config = self.state / 'config.json'; config.write_text(json.dumps(self.config))
+        env = dict(os.environ, GITEA_TOKEN='', GITEA_TOKEN_FILE=str(token))
+        p = subprocess.run([sys.executable, str(ROOT / 'scripts/super-board-gitea.py'),
+                            '--config', str(config), 'doctor'], env=env, capture_output=True, text=True)
+        self.assertEqual(p.returncode, 0, p.stderr)
+        result = json.loads(p.stdout)
+        self.assertTrue(result['authenticated']); self.assertEqual(result['credentialSource'], 'file')
+        self.assertNotIn(self.server.token, p.stdout + p.stderr)
+
+    def test_environment_token_has_explicit_precedence(self):
+        patch = __import__('unittest.mock', fromlist=['patch']).patch
+        with patch.dict(os.environ, {'GITEA_TOKEN_FILE': str(self.state / 'absent')}):
+            self.assertEqual(self.provider().token_source, 'environment')
+
+    def test_unsafe_missing_and_symlink_token_files_fail_before_http(self):
+        token = self.state / 'token'; token.write_text(self.server.token); token.chmod(0o644)
+        linked = self.state / 'linked'; linked.symlink_to(token)
+        patch = __import__('unittest.mock', fromlist=['patch']).patch
+        for path in (token, linked, self.state / 'missing'):
+            with patch.dict(os.environ, {'GITEA_TOKEN': '', 'GITEA_TOKEN_FILE': str(path)}):
+                with self.assertRaises(ProviderError) as caught:
+                    self.provider()
+                self.assertEqual(caught.exception.code, 66)
+                self.assertNotIn(self.server.token, str(caught.exception))
+        self.assertEqual(self.server.calls, [])
+
     def test_snapshot_uses_global_id_and_local_number(self):
         row = self.provider().items()['items'][0]
         self.assertEqual(row['id'], 9001); self.assertEqual(row['content']['number'], 11)

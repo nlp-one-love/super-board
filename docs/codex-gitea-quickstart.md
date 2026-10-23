@@ -35,6 +35,10 @@ branch, CI contexts and seven board columns. Supply GITEA_URL, GITEA_OWNER,
 GITEA_REPO, GITEA_PROJECT_ID and GITEA_TOKEN through local environment/secret store.
 Never paste secrets into chat or commit them. The origin must match that repo.
 
+For file-based credentials, export GITEA_TOKEN_FILE before starting Codex. Direct
+Python provider/runner commands also read that file; it must be owner-only (600).
+Do not leave an obsolete GITEA_TOKEN set: a nonempty token env overrides the file.
+
 At the sandbox root:
 
 ```bash
