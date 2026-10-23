@@ -31,6 +31,18 @@
 
 set -euo pipefail
 
+# Reviewed, transactional installation for the Codex/Gitea distribution.
+# Legacy GitHub installation remains available with its original arguments.
+if [ "${1:-}" = --safe ]; then
+  shift
+  SB_PACKAGE_ROOT=$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)
+  SB_PACKAGE_ACTION=install
+  case "${1:-}" in
+    install|update|uninstall|rollback|doctor|version) SB_PACKAGE_ACTION=$1; shift ;;
+  esac
+  exec python3 "$SB_PACKAGE_ROOT/scripts/super-board-package.py" "$SB_PACKAGE_ACTION" "$@"
+fi
+
 REPO_ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 HOOKS=1
 PROTECT=0

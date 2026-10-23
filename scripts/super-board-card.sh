@@ -41,6 +41,15 @@ set -euo pipefail
 export SB_GITHUB_READ_STRICT=1
 
 HERE=$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)
+if [ "${SB_PROVIDER_BYPASS:-}" != 1 ] && [ -f "$HERE/super-board-provider-route.py" ]; then
+  SB_PROVIDER=$(python3 "$HERE/super-board-provider-route.py" "$@")
+  if [ "$SB_PROVIDER" = gitea ]; then
+    if [ -n "${SB_CONFIG:-}" ]; then
+      exec python3 "$HERE/super-board-provider.py" --config "$SB_CONFIG" "$@"
+    fi
+    exec python3 "$HERE/super-board-provider.py" "$@"
+  fi
+fi
 CONFIG="${SB_CONFIG:-}"; OWNER="${BUILD_LOOP_OWNER:-}"; NUMBER="${BUILD_LOOP_PROJECT:-}"; REPO=""
 while [ $# -gt 0 ]; do
   case "$1" in

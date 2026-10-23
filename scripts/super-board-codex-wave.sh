@@ -6,6 +6,11 @@
 # (ROUTER_MODEL) grades each Ready card low/medium/high; the lane launcher maps
 # tier x grade to a model through its CODEX_LADDERS table.
 set -euo pipefail
+SB_HERE=$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)
+if [ -f "$SB_HERE/super-board-provider-route.py" ] && [ "$(python3 "$SB_HERE/super-board-provider-route.py" "$@")" = gitea ]; then
+  echo 'Gitea waves are owned by super-board-gitea.py run; use its explicit write/agent grants.' >&2
+  exit 7
+fi
 exec python3 - "${BASH_SOURCE[0]}" "$@" <<'PY'
 import argparse
 import importlib.util

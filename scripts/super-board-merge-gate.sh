@@ -108,6 +108,11 @@
 # and migrations run after verification, inside the lock, right before the
 # merge. `--dry-run` reports both and runs neither.
 set -euo pipefail
+SB_PROVIDER_HERE=$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)
+if [ -f "$SB_PROVIDER_HERE/super-board-provider-route.py" ] && [ "$(python3 "$SB_PROVIDER_HERE/super-board-provider-route.py" "$@")" = gitea ]; then
+  echo 'Gitea automatic merge and migrations are disabled. Review and merge manually.' >&2
+  exit 7
+fi
 # Fixed read commands: a malformed payload is GitHub's, so it halts (#32).
 export SB_GITHUB_READ_STRICT=1
 HERE=$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)

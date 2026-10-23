@@ -21,6 +21,13 @@
 
 set -euo pipefail
 
+# Fork release path: no latest/main fallback, npx or downloaded script execution.
+if [ "${1:-}" = --safe ]; then
+  shift
+  SB_DOWNLOAD_ROOT=$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)
+  exec python3 "$SB_DOWNLOAD_ROOT/scripts/super-board-download.py" "$@"
+fi
+
 say()  { printf '%s\n' "$*"; }
 warn() { printf '⚠️  %s\n' "$*" >&2; }
 die()  { printf '❌ %s\n' "$*" >&2; exit "${2:-1}"; }

@@ -7,6 +7,11 @@
 # Model: --codex=<model>, else codex.model, else CODEX_LADDERS[tier][complexity]
 # when --tier is given (an ungraded card takes the medium cell), else Codex's default.
 set -euo pipefail
+SB_HERE=$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)
+if [ -f "$SB_HERE/super-board-provider-route.py" ] && [ "$(python3 "$SB_HERE/super-board-provider-route.py" "$@")" = gitea ]; then
+  echo 'Gitea lanes are owned by super-board-gitea.py run; use its explicit write/agent grants.' >&2
+  exit 7
+fi
 exec python3 - "${BASH_SOURCE[0]}" "$@" <<'PY'
 import argparse
 import importlib.util

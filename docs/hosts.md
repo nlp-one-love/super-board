@@ -9,7 +9,10 @@ super-board runs inside an agent host: the CLI whose session types `/super-board
 | `codex` | codex-cli 0.160.0 | `/super-board run` inside Codex runs as `--codex`; from Claude, `/super-board run --codex` | `codex login`; `gh auth login` | No Workflow tool, so every lane is headless `codex exec`. Review runs only with explicit `--codex` (a host-switched plain `run` counts). No Claude usage guard. |
 | `opencode` | OpenCode v2.0.22 | Not supported yet: the run halts with a host-selection request | `opencode auth login`; `gh auth login` | No OpenCode lane backend yet. `permission.external_directory: deny` is not enforced in v2.0.22 (`patch` still writes outside the repo), so OpenCode runs stay attended-only once a backend lands. |
 
-Every host also needs `gh`, `jq`, bash 3.2+ and Python 3.9+.
+For the original GitHub backend every host also needs `gh`, `jq`, bash 3.2+ and Python 3.9+.
+The fork's [Gitea/Codex runner](codex-gitea-quickstart.md) uses Python/Git/Codex
+directly, without gh, jq, Claude Code or a Workflow tool. Gitea runs are POSIX-only
+and stop at manual merge. Its installation path is `install.sh --safe`.
 
 ## How the host is picked
 

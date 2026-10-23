@@ -1,3 +1,8 @@
+This fork adds **Gitea 28.x + Codex CLI**, manual merge and manifest-based installation.
+See [quickstart](docs/codex-gitea-quickstart.md), [provider settings](docs/gitea-provider.md)
+and [upgrade/rollback](docs/upgrading-fork.md). Use `install.sh --safe` / `get.sh --safe`
+for this mode. The original GitHub workflow below remains available.
+
 <div align="center">
 
 <img src="docs/assets/logo.svg" width="88" height="88" alt="super-board kanban logo">

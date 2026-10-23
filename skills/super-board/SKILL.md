@@ -5,6 +5,15 @@ description: GitHub-Project-driven autonomous pipeline. Five verbs — onboard, 
 
 # super-board — autonomous GitHub Project pipeline
 
+## Provider routing (before any other setup or run step)
+
+Read the selected project JSON config. Missing `provider` means the original GitHub backend.
+When `provider` is `gitea`, use ONLY `references/gitea-run.md` for onboard, doctor,
+status, plan, run, stop, resume and completion. The GitHub instructions below and
+the GitHub run/onboard references do not apply to that configuration. Use Codex CLI;
+never install or launch Claude Code, run gh auth, create GitHub Projects, or merge
+automatically for a Gitea project. Do not invoke legacy wave/lane/merge helpers.
+
 ## Five verbs
 
 | Verb | Where | What it does |

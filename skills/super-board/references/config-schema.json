@@ -9,6 +9,11 @@
 {
   "version": 1,
 
+  // Missing provider retains GitHub behavior. Gitea uses version 2 and the JSON
+  // documented in docs/gitea-provider.md / references/gitea-run.md. Do not run
+  // GitHub onboard/legacy dispatch for provider=gitea.
+  "provider": "github",
+
   // Short scannable label shown when multiple configs are listed.
   // E.g. "staging QA" or "admin build pipeline".
   "description": "<short scannable label, e.g. 'staging QA' or 'admin build pipeline'>",

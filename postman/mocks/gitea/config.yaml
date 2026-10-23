@@ -1,0 +1,10 @@
+version: 1
+name: gitea-28.2-local
+slug: gitea-local
+protocol: http
+port: 4917
+interceptRequests: true
+scenarios:
+  - name: default
+    path: ./default.js
+    default: true

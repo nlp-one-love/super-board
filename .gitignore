@@ -20,6 +20,9 @@ __pycache__/
 .claude/super-board/collect/
 .claude/super-board/inflight/
 .claude/super-board/migrations/
+.claude/super-board/provider-state/
+.claude/super-board/gitea/
+.agents/super-board/
 .claude/worktrees/
 .worktrees/
 

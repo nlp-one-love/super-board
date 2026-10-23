@@ -1,0 +1,5 @@
+simulation: super-board-gitea
+routing: path
+mocks:
+  - routeKey: gitea
+    path: ../mocks/gitea/config.yaml
